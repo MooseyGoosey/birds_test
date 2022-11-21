@@ -14,33 +14,85 @@ library(tidyverse)
 
 ## Introduction
 
-Write some text here about what you are doing. Show the code for reading in the `birds.csv` file. Explain the data and where it is from.
+Here I am practicing making an R Markdown. I will be using data from birds.csv for this document.
 
 ```{r code_block1}
-# add some code
+#Load in birds data
+library(readr)
+birds <- read_csv("birds.csv")
 ```
 
 ## Plotting size relationships
 
-Here I want you to plot the relationship between [tarsus length](https://en.wikipedia.org/wiki/Bird_measurement#Tarsus) and [wing length](https://en.wikipedia.org/wiki/Bird_measurement#Wing). Write some text explaining the plot. Show your code.
+```{r}
+ggplot(birds, aes(birds$Tarsus.Length, birds$Wing.Length)) + geom_point() + xlab('Tarsus Length') + ylab('Wing Length')
+```
 
-Are there any outliers with a very long tarsus but very short wings? Can you identify them? Hint, you can use `filter` to do this, `pull(Species2_ebird)` will give the species name from the [eBird database](https://ebird.org/home) - but you can use any of the species names columns for this.
+Here we have plotted tarsus length against wing length. In this plot, we can see there is a general positive correlation between tarsus and wing lengths. However, there several individuals with a tarsus length between 50-100 and a wing length near 0, as well as several with a tarsus length > 400 and a dispraportionately small wing length.
+
+```{r}
+birds %>%
+  filter(Tarsus.Length > 400) %>%
+  select(Species2_eBird, Tarsus.Length, Wing.Length) %>%
+  group_by(Species2_eBird) %>%
+  tally() %>%
+  print()
+```
+There are several outliers within this dataset. The code above will select the outliers with a large Tarsus length and small Wing length.
+
+```{r}
+birds %>%
+  filter(Wing.Length < 10) %>%
+  select(Species2_eBird, Tarsus.Length, Wing.Length) %>%
+  group_by(Species2_eBird) %>%
+  tally() %>%
+  print()
+```
+The code above will identify outliers with a small tarsus length and a very small wing length.
+
 
 ## Write a function
 
-Nearly all of the phenotypic measurements in this dataset are in millimetres. Write a function to convert them to centimetres. Show the code below. 
+To convert phenotypic measurements from mm to cm we can use the following function:
+```{r}
+convert <- function(x){
+  z = x/10
+  return(z)
+}
+birds_cm <- convert(birds[,14:23])
+```
+
 
 ## Some bird queries
 
-Which bird has the longest beak? Does it differ between culmen (from base of beak entering skull) or nares (from the nostril) measurements? Show the code below and make sure you return **only the top hits** from each measurement - nb. `head()` will help here.
+```{r}
+birds %>%
+  filter(Beak.Length_Culmen == max(birds$Beak.Length_Culmen, na.rm = TRUE)) %>%
+  select(Species2_eBird, Beak.Length_Culmen, Beak.Length_Nares) %>%
+  print()
+```
+
+```{r}
+birds %>%
+  filter(Beak.Length_Nares == max(birds$Beak.Length_Nares, na.rm = TRUE)) %>%
+  select(Species2_eBird, Beak.Length_Culmen, Beak.Length_Nares) %>%
+  print()
+```
+
+Pelecanus Conspicillatus has the longest beak. This is true both when measuring from the culmen or from the nares.
 
 ## Crows, ravens and magpies
 
-Filter your dataset to include only common crows (*Corvus corone*), ravens (*Corvus corax*) and magpies (*Pica pica*). The code below is intended as a hint:
-
-```{r code_block2, echo = TRUE, eval = FALSE}
-filter(species == "A" | species == "B" | species == "C") 
+```{r}
+birds %>%
+  filter(Species2_eBird == 'Corvus corone' | Species2_eBird == 'Corvus corax' | Species2_eBird == 'Pica pica') %>%
+  ggplot(aes(Species2_eBird, Beak.Depth)) + geom_boxplot() + xlab('Species') + ylab('Beak Depth')
 ```
 
-Now draw a `ggplot2` boxplot of the beak length and depth distributions of these samples. Which species has the deepest beak? And which has the longest? **NB. Use culmen length here**
+```{r}
+birds %>%
+  filter(Species2_eBird == 'Corvus corone' | Species2_eBird == 'Corvus corax' | Species2_eBird == 'Pica pica') %>%
+  ggplot(aes(Species2_eBird, Beak.Length_Culmen)) + geom_boxplot() + xlab('Species') + ylab('Beak Length')
+```
 
+The above boxplots will display the distributon of beak depth and lengths among crows, ravens an magpies. Here we can see that Crows have both the largest beak depth and length.
